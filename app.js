@@ -47,61 +47,12 @@
   let decodeSpeed = 1;
 
   /* ═══════════════════════════════════════════════════════════
-     PARTICLE SYSTEM (Background anti-gravity effect)
+     BACKGROUND WALLPAPER SYSTEM
+     Replaced animated particle canvas with static wallpapers:
+     - Light_mode.jpg for light mode
+     - Dark_mode.jpg for dark mode
      ═══════════════════════════════════════════════════════════ */
-  const particleCanvas = document.getElementById('particle-canvas');
-  const pCtx = particleCanvas.getContext('2d');
-  let particles = [];
-
-  function resizeParticleCanvas() {
-    particleCanvas.width = window.innerWidth;
-    particleCanvas.height = window.innerHeight;
-  }
-
-  function initParticles(count = 42) {
-    particles = [];
-    for (let i = 0; i < count; i++) {
-      particles.push({
-        x: Math.random() * particleCanvas.width,
-        y: Math.random() * particleCanvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5 - 0.2,
-        r: Math.random() * 4 + 2,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        alpha: Math.random() * 0.25 + 0.08,
-        phase: Math.random() * Math.PI * 2,
-      });
-    }
-  }
-
-  function updateParticles() {
-    const w = particleCanvas.width, h = particleCanvas.height;
-    const t = performance.now() * 0.001;
-    for (const p of particles) {
-      p.vy -= 0.003;
-      p.vx += Math.sin(t + p.phase) * 0.002;
-      p.vx *= 0.995;
-      p.vy *= 0.995;
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.y < -10) { p.y = h + 10; p.x = Math.random() * w; }
-      if (p.y > h + 10) { p.y = -10; }
-      if (p.x < -10) p.x = w + 10;
-      if (p.x > w + 10) p.x = -10;
-    }
-  }
-
-  function drawParticles() {
-    pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
-    for (const p of particles) {
-      pCtx.beginPath();
-      pCtx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      pCtx.fillStyle = p.color;
-      pCtx.globalAlpha = p.alpha;
-      pCtx.fill();
-    }
-    pCtx.globalAlpha = 1;
-  }
+  // Particle system replaced with responsive wallpaper backgrounds in CSS
 
   /* ═══════════════════════════════════════════════════════════
      HUFFMAN ENGINE & STEP GENERATION
@@ -611,7 +562,7 @@
         parentScale = 0;
         edgeDrawProgress = 0;
       } else if (progress < 0.72) {
-        // Phase 2: Lifting up with anti-gravity bezier curve
+        // Phase 2: Lifting up with bezier curve
         const u = (progress - 0.28) / (0.72 - 0.28);
         const e = easeInOutCubic(u);
         const arc = Math.sin(Math.PI * e) * 45;
@@ -1263,7 +1214,7 @@
 
     if (modeDescPill) {
       if (isStandard) {
-        modeDescPill.innerHTML = `<strong>Standard Mode Active:</strong> Default educational mode. Includes payload bits plus full header serialization overhead (<strong>${freqMap.size} unique symbols × 16 bits</strong> = ${overheadBits} bits: 8-bit ASCII character map + 8-bit frequency/code length metadata per symbol).`;
+        modeDescPill.innerHTML = `<strong>Standard Mode Active:</strong> Includes payload bits plus full header serialization overhead (<strong>${freqMap.size} unique symbols × 16 bits</strong> = ${overheadBits} bits: 8-bit ASCII character map + 8-bit frequency/code length metadata per symbol).`;
       } else {
         modeDescPill.innerHTML = `<strong>Canonical / Payload-Only Mode Active:</strong> Assumes a pre-shared dictionary tree or canonical bit-length array (<strong>0 bits header overhead</strong>), reflecting raw variable-length prefix code payload efficiency.`;
       }
@@ -1271,8 +1222,8 @@
 
     const calcSubtitle = $('#calc-panel-subtitle');
     if (calcSubtitle) {
-      calcSubtitle.textContent = isStandard 
-        ? 'Standard Mode (Payload + Header Overhead)' 
+      calcSubtitle.textContent = isStandard
+        ? 'Standard Mode (Payload + Header Overhead)'
         : 'Canonical / Payload-Only Mode (Zero Header)';
     }
 
@@ -1614,10 +1565,6 @@
     const dt = Math.min((timestamp - lastTime) / 1000, 0.05);
     lastTime = timestamp;
 
-    // Background floating particles
-    updateParticles();
-    drawParticles();
-
     // Step animation progress
     if (isAnimating && buildSteps.length > 0) {
       const stepDurationMs = 1800 / speedMultiplier;
@@ -1648,11 +1595,7 @@
      ═══════════════════════════════════════════════════════════ */
 
   function init() {
-    resizeParticleCanvas();
-    initParticles();
-
     window.addEventListener('resize', () => {
-      resizeParticleCanvas();
       if (!treeSection.classList.contains('hidden')) {
         resizeTreeCanvas();
         if (huffmanRoot) {

@@ -16,8 +16,7 @@
 </head>
 
 <body>
-  <!-- Floating particle canvas background -->
-  <canvas id="particle-canvas"></canvas>
+  <!-- Wallpaper Backgrounds: Light_mode.jpg (light) & Dark_mode.jpg (dark) handled in style.css -->
 
   <!-- Top Navigation -->
   <nav id="top-nav">
@@ -72,10 +71,11 @@
             spellcheck="false">HELLO</textarea>
           <div class="preset-row">
             <span style="font-size:12px; color:var(--text-tertiary); align-self:center;">Presets:</span>
-            <button class="preset-btn" data-text="HELLO" title="Short string showing negative compression in Standard mode">HELLO (Negative Demo)</button>
-            <button class="preset-btn" data-text="ABRACADABRA" title="Skewed frequency text with high bit savings">ABRACADABRA</button>
+            <button class="preset-btn" data-text="HELLO"
+              title="Short string showing negative compression in Standard mode">HELLO (Negative Demo)</button>
+            <button class="preset-btn" data-text="AAABBADACCCAEEEDDBBBD"
+              title="Skewed frequency text with high bit savings">AAABBADACCCAEEEDDBBBD</button>
             <button class="preset-btn" data-text="BEEP BOOP" title="Classic test string">BEEP BOOP</button>
-            <button class="preset-btn" data-text="TO BE OR NOT TO BE THAT IS THE QUESTION" title="Longer sentence">Shakespeare</button>
           </div>
         </div>
         <button id="analyze-btn" class="primary-btn">
@@ -196,12 +196,15 @@
             <span class="mode-title">Overhead Accounting Model</span>
           </div>
           <div class="mode-toggle-group" role="radiogroup" aria-label="Compression Overhead Mode">
-            <button id="mode-standard-btn" class="mode-pill-btn active" role="radio" aria-checked="true" data-mode="standard" title="Includes full tree header / frequency table overhead">
+            <button id="mode-standard-btn" class="mode-pill-btn active" role="radio" aria-checked="true"
+              data-mode="standard" title="Includes full tree header / frequency table overhead">
               <span class="mode-pill-dot"></span>
               <span class="mode-pill-name">Standard Mode</span>
               <span class="mode-pill-sub">(Includes Tree Header Overhead)</span>
             </button>
-            <button id="mode-canonical-btn" class="mode-pill-btn" role="radio" aria-checked="false" data-mode="canonical" title="Assumes pre-shared tree or canonical bit-length array with zero tree overhead">
+            <button id="mode-canonical-btn" class="mode-pill-btn" role="radio" aria-checked="false"
+              data-mode="canonical"
+              title="Assumes pre-shared tree or canonical bit-length array with zero tree overhead">
               <span class="mode-pill-dot"></span>
               <span class="mode-pill-name">Canonical / Payload-Only Mode</span>
               <span class="mode-pill-sub">(Zero Header Overhead)</span>
@@ -209,7 +212,8 @@
           </div>
         </div>
         <p id="mode-desc-pill" class="mode-desc-text">
-          <strong>Standard Mode Active:</strong> Default educational mode. Includes payload bits plus header serialization overhead (8-bit ASCII character map + 8-bit frequency/code length metadata per unique symbol).
+          <strong>Standard Mode Active:</strong> Default educational mode. Includes payload bits plus header
+          serialization overhead (8-bit ASCII character map + 8-bit frequency/code length metadata per unique symbol).
         </p>
       </div>
 
@@ -218,19 +222,22 @@
         <div class="banner-icon-container">
           <div id="banner-icon" class="banner-icon-circle">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-              <line x1="12" y1="9" x2="12" y2="13"/>
-              <line x1="12" y1="17" x2="12.01" y2="17"/>
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
             </svg>
           </div>
         </div>
         <div class="banner-content">
           <div class="banner-top-row">
-            <h3 id="banner-title" class="banner-heading">Heads Up: Compression Inefficient / Not Feasible for this input</h3>
+            <h3 id="banner-title" class="banner-heading">Heads Up: Compression Inefficient / Not Feasible for this input
+            </h3>
             <span id="banner-badge" class="banner-status-tag tag-warning">Negative Compression</span>
           </div>
           <p id="banner-explanation" class="banner-desc">
-            Due to small input size or large unique character count, table overhead exceeds bit savings. In production systems, data would be stored uncompressed (Raw Store Mode). However, the Huffman Tree construction and decoding traversal below will still run for educational purposes.
+            Due to small input size or large unique character count, table overhead exceeds bit savings. In production
+            systems, data would be stored uncompressed (Raw Store Mode). However, the Huffman Tree construction and
+            decoding traversal below will still run for educational purposes.
           </p>
           <div class="banner-stats-strip" id="banner-stats-strip">
             <span class="banner-chip" id="bchip-raw">Raw: <strong>40 bits</strong></span>
@@ -341,8 +348,10 @@
             </div>
             <div class="ratio-legend">
               <span class="legend-item"><span class="legend-dot dot-payload"></span> Payload</span>
-              <span class="legend-item" id="legend-overhead-item"><span class="legend-dot dot-overhead"></span> Overhead</span>
-              <span class="legend-item" id="legend-status-item"><span class="legend-dot dot-savings"></span> Net Savings</span>
+              <span class="legend-item" id="legend-overhead-item"><span class="legend-dot dot-overhead"></span>
+                Overhead</span>
+              <span class="legend-item" id="legend-status-item"><span class="legend-dot dot-savings"></span> Net
+                Savings</span>
             </div>
           </div>
 
