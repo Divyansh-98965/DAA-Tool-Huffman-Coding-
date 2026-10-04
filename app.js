@@ -18,6 +18,7 @@
   let codes = {};
   let freqMap = new Map();
   let inputText = '';
+  let overheadMode = 'standard'; // 'standard' (includes tree overhead) | 'canonical' (zero tree overhead)
 
   // Step-by-step construction state
   let buildSteps = [];
@@ -880,10 +881,25 @@
   const btnStepFwd = $('#btn-step-fwd');
   const btnStepBack = $('#btn-step-back');
   const btnReset = $('#btn-reset');
+  const btnSkip = $('#btn-skip');
   const speedSlider = $('#speed-slider');
   const speedLabel = $('#speed-label');
   const stepCurrent = $('#step-current');
   const stepTotal = $('#step-total');
+
+  // Mode Switch & Banner Selectors
+  const modeStandardBtn = $('#mode-standard-btn');
+  const modeCanonicalBtn = $('#mode-canonical-btn');
+  const modeDescPill = $('#mode-desc-pill');
+  const effBanner = $('#efficiency-callout-banner');
+  const bannerIcon = $('#banner-icon');
+  const bannerTitle = $('#banner-title');
+  const bannerBadge = $('#banner-badge');
+  const bannerDesc = $('#banner-explanation');
+  const bchipRaw = $('#bchip-raw');
+  const bchipTotal = $('#bchip-total');
+  const bchipDiff = $('#bchip-diff');
+  const bchipRatio = $('#bchip-ratio');
 
   /* ─── Dark Mode Toggle ─── */
   const darkToggle = $('#dark-mode-toggle');
@@ -900,7 +916,7 @@
   $$('.preset-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       textInput.value = btn.dataset.text;
-      textInput.focus();
+      analyzeBtn.click();
     });
   });
 
@@ -1112,6 +1128,17 @@
   btnStepBack.addEventListener('click', stepBack);
   btnReset.addEventListener('click', resetConstruction);
 
+  if (btnSkip) {
+    btnSkip.addEventListener('click', () => {
+      stopPlayback();
+      if (!buildSteps || buildSteps.length === 0) return;
+      currentStep = buildSteps.length - 1;
+      stepProgress = 1.0;
+      isAnimating = false;
+      onStepSettled();
+    });
+  }
+
   speedSlider.addEventListener('input', () => {
     speedMultiplier = parseFloat(speedSlider.value);
     speedLabel.textContent = `${speedMultiplier}×`;
@@ -1195,16 +1222,7 @@
       tbody.appendChild(tr);
     });
 
-    const overhead = freqMap.size * (8 + 8);
-    const totalCompressed = totalEncodedBits + overhead;
-    const ratio = ((1 - totalCompressed / totalOrigBits) * 100);
-
-    $('#calc-orig').textContent = `${totalOrigBits} bits`;
-    $('#calc-encoded').textContent = `${totalEncodedBits} bits`;
-    $('#calc-overhead').textContent = `${overhead} bits`;
-    $('#calc-total').textContent = `${totalCompressed} bits`;
-    $('#calc-ratio').textContent = `${ratio.toFixed(1)}%`;
-    $('#ratio-fill').style.width = `${Math.max(0, Math.min(100, 100 - ratio))}%`;
+    updateAnalyticsUI();
 
     const encoded = encodeText(inputText, codes);
     const bsEl = $('#encoded-bitstring');
@@ -1215,6 +1233,198 @@
     setTimeout(() => {
       encodeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 250);
+  }
+
+  function updateAnalyticsUI() {
+    if (!inputText || freqMap.size === 0) return;
+
+    const totalOrigBits = inputText.length * 8;
+    let totalPayloadBits = 0;
+
+    for (const [char, freq] of freqMap) {
+      const code = codes[char] || '';
+      totalPayloadBits += freq * code.length;
+    }
+
+    const isStandard = (overheadMode === 'standard');
+    // Standard Mode: 8 bits char ASCII map + 8 bits frequency/tree metadata per unique symbol
+    const overheadBits = isStandard ? (freqMap.size * 16) : 0;
+    const totalCompressed = totalPayloadBits + overheadBits;
+    const netSaved = totalOrigBits - totalCompressed;
+    const ratio = totalOrigBits > 0 ? ((totalOrigBits - totalCompressed) / totalOrigBits) * 100 : 0;
+
+    // 1. Update Mode Toggle Buttons
+    if (modeStandardBtn && modeCanonicalBtn) {
+      modeStandardBtn.classList.toggle('active', isStandard);
+      modeStandardBtn.setAttribute('aria-checked', isStandard ? 'true' : 'false');
+      modeCanonicalBtn.classList.toggle('active', !isStandard);
+      modeCanonicalBtn.setAttribute('aria-checked', !isStandard ? 'true' : 'false');
+    }
+
+    if (modeDescPill) {
+      if (isStandard) {
+        modeDescPill.innerHTML = `<strong>Standard Mode Active:</strong> Default educational mode. Includes payload bits plus full header serialization overhead (<strong>${freqMap.size} unique symbols × 16 bits</strong> = ${overheadBits} bits: 8-bit ASCII character map + 8-bit frequency/code length metadata per symbol).`;
+      } else {
+        modeDescPill.innerHTML = `<strong>Canonical / Payload-Only Mode Active:</strong> Assumes a pre-shared dictionary tree or canonical bit-length array (<strong>0 bits header overhead</strong>), reflecting raw variable-length prefix code payload efficiency.`;
+      }
+    }
+
+    const calcSubtitle = $('#calc-panel-subtitle');
+    if (calcSubtitle) {
+      calcSubtitle.textContent = isStandard 
+        ? 'Standard Mode (Payload + Header Overhead)' 
+        : 'Canonical / Payload-Only Mode (Zero Header)';
+    }
+
+    // 2. Update Breakdown Table
+    const elRaw = $('#calc-orig');
+    const elPayload = $('#calc-encoded');
+    const elOverhead = $('#calc-overhead');
+    const elTotal = $('#calc-total');
+    const elRatio = $('#calc-ratio');
+
+    if (elRaw) elRaw.textContent = `${totalOrigBits} bits`;
+    if (elPayload) elPayload.textContent = `${totalPayloadBits} bits`;
+    if (elOverhead) elOverhead.textContent = `${overheadBits} bits`;
+    if (elTotal) elTotal.textContent = `${totalCompressed} bits`;
+    if (elRatio) {
+      elRatio.textContent = `${ratio >= 0 ? '+' : ''}${ratio.toFixed(1)}%`;
+      elRatio.className = `metric-pct metric-bold ${ratio >= 0 ? 'text-success' : 'text-warning'}`;
+    }
+
+    const elPayloadPct = $('#breakdown-payload-pct');
+    const elOverheadPct = $('#breakdown-overhead-pct');
+    const elTotalPct = $('#breakdown-total-pct');
+    if (elPayloadPct) elPayloadPct.textContent = totalOrigBits > 0 ? `${((totalPayloadBits / totalOrigBits) * 100).toFixed(1)}%` : '—';
+    if (elOverheadPct) elOverheadPct.textContent = totalOrigBits > 0 ? `${((overheadBits / totalOrigBits) * 100).toFixed(1)}%` : '—';
+    if (elTotalPct) elTotalPct.textContent = totalOrigBits > 0 ? `${((totalCompressed / totalOrigBits) * 100).toFixed(1)}%` : '—';
+
+    const elOverheadFormula = $('#breakdown-overhead-formula');
+    if (elOverheadFormula) {
+      elOverheadFormula.innerHTML = isStandard
+        ? `<code>${freqMap.size} symbols × 16 bits (Char map + Tree metadata)</code>`
+        : `<code>0 bits (Pre-shared / canonical payload-only)</code>`;
+    }
+
+    const elNetDiff = $('#breakdown-net-diff');
+    const rowNet = $('#row-net-diff');
+    const bulletNet = $('#bullet-net');
+
+    if (elNetDiff) {
+      if (netSaved >= 0) {
+        elNetDiff.innerHTML = `<span class="net-badge positive">+${netSaved} bits saved</span>`;
+      } else {
+        elNetDiff.innerHTML = `<span class="net-badge negative">-${Math.abs(netSaved)} bits expansion</span>`;
+      }
+    }
+    if (rowNet) {
+      rowNet.classList.toggle('negative', netSaved < 0);
+    }
+    if (bulletNet) {
+      bulletNet.classList.toggle('negative', netSaved < 0);
+    }
+
+    // 3. Update Dynamic Efficiency & Overhead Warning Banner
+    if (effBanner) {
+      effBanner.classList.remove('hidden');
+      if (ratio < 0) {
+        effBanner.className = 'efficiency-banner warning-banner';
+        if (bannerIcon) {
+          bannerIcon.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>`;
+        }
+        if (bannerTitle) bannerTitle.textContent = 'Heads Up: Compression Inefficient / Not Feasible for this input';
+        if (bannerBadge) {
+          bannerBadge.className = 'banner-status-tag tag-warning';
+          bannerBadge.textContent = `Negative Compression (${ratio.toFixed(1)}%)`;
+        }
+        if (bannerDesc) {
+          bannerDesc.textContent = 'Due to small input size or large unique character count, table overhead exceeds bit savings. In production systems, data would be stored uncompressed (Raw Store Mode). However, the Huffman Tree construction and decoding traversal below will still run for educational purposes.';
+        }
+        if (bchipRaw) bchipRaw.innerHTML = `Raw: <strong>${totalOrigBits} bits</strong>`;
+        if (bchipTotal) bchipTotal.innerHTML = `Compressed: <strong>${totalCompressed} bits</strong>`;
+        if (bchipDiff) bchipDiff.innerHTML = `Difference: <strong>-${Math.abs(netSaved)} bits expansion</strong>`;
+        if (bchipRatio) bchipRatio.innerHTML = `Ratio: <strong>${ratio.toFixed(1)}%</strong>`;
+      } else {
+        effBanner.className = 'efficiency-banner success-banner';
+        if (bannerIcon) {
+          bannerIcon.innerHTML = `
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>`;
+        }
+        if (bannerTitle) bannerTitle.textContent = `Efficient Compression: Saved ${ratio.toFixed(1)}% bits`;
+        if (bannerBadge) {
+          bannerBadge.className = 'banner-status-tag tag-success';
+          bannerBadge.textContent = `Efficient Compression (+${ratio.toFixed(1)}%)`;
+        }
+        if (bannerDesc) {
+          bannerDesc.textContent = `Huffman coding achieved effective data reduction! Variable-length prefix codes mapped higher-frequency symbols to shorter bit sequences, saving ${netSaved} bits compared to uncompressed 8-bit ASCII storage (${totalOrigBits} raw → ${totalCompressed} compressed).`;
+        }
+        if (bchipRaw) bchipRaw.innerHTML = `Raw: <strong>${totalOrigBits} bits</strong>`;
+        if (bchipTotal) bchipTotal.innerHTML = `Compressed: <strong>${totalCompressed} bits</strong>`;
+        if (bchipDiff) bchipDiff.innerHTML = `Difference: <strong>+${netSaved} bits saved</strong>`;
+        if (bchipRatio) bchipRatio.innerHTML = `Ratio: <strong>+${ratio.toFixed(1)}%</strong>`;
+      }
+    }
+
+    // 4. Update Visual Gauge / Bar
+    const ratioFill = $('#ratio-fill');
+    const ratioSummary = $('#ratio-summary-badge');
+    const legendOverhead = $('#legend-overhead-item');
+    if (legendOverhead) {
+      legendOverhead.style.display = isStandard ? 'inline-flex' : 'none';
+    }
+
+    if (ratio < 0) {
+      if (ratioFill) {
+        ratioFill.style.width = '100%';
+        ratioFill.style.background = 'linear-gradient(90deg, #FBBC05, #EA4335)';
+      }
+      if (ratioSummary) {
+        ratioSummary.className = 'ratio-summary-badge negative';
+        ratioSummary.textContent = `Expanded by +${Math.abs(netSaved)} bits (${((totalCompressed / totalOrigBits) * 100).toFixed(1)}% of raw)`;
+      }
+    } else {
+      if (ratioFill) {
+        const fillPct = Math.max(5, Math.min(100, (totalCompressed / totalOrigBits) * 100));
+        ratioFill.style.width = `${fillPct}%`;
+        ratioFill.style.background = 'linear-gradient(90deg, #34A853, #4285F4)';
+      }
+      if (ratioSummary) {
+        ratioSummary.className = 'ratio-summary-badge positive';
+        ratioSummary.textContent = `Saved ${ratio.toFixed(1)}% (${netSaved} bits saved)`;
+      }
+    }
+
+    // 5. Update Bitstring length badge
+    const encoded = encodeText(inputText, codes);
+    const bitstringBadge = $('#bitstring-len-badge');
+    if (bitstringBadge) {
+      bitstringBadge.textContent = `${encoded.length} bits payload`;
+    }
+  }
+
+  // Overhead mode toggle button handlers
+  if (modeStandardBtn) {
+    modeStandardBtn.addEventListener('click', () => {
+      if (overheadMode === 'standard') return;
+      overheadMode = 'standard';
+      updateAnalyticsUI();
+    });
+  }
+
+  if (modeCanonicalBtn) {
+    modeCanonicalBtn.addEventListener('click', () => {
+      if (overheadMode === 'canonical') return;
+      overheadMode = 'canonical';
+      updateAnalyticsUI();
+    });
   }
 
   /* ═══════════════════════════════════════════════════════════

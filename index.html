@@ -53,7 +53,7 @@
 
   <!-- Hero Section -->
   <header id="hero">
-    <h1>Huffman Coding <span class="hero-accent">Visualizer</span></h1>
+    <h1>Huffman Coding Visualizer</h1>
     <p class="hero-sub">Explore lossless data compression through interactive animations, tree construction &amp;
       decoding traversal</p>
   </header>
@@ -68,9 +68,15 @@
       <div class="input-row">
         <div class="input-group">
           <label for="text-input">Enter text to encode</label>
-          <textarea id="text-input" rows="2" placeholder="Type something or choose a preset…"
-            spellcheck="false">BEEP BOOP</textarea>
-
+          <textarea id="text-input" rows="2" placeholder="Type a string to build a Huffman Tree"
+            spellcheck="false">HELLO</textarea>
+          <div class="preset-row">
+            <span style="font-size:12px; color:var(--text-tertiary); align-self:center;">Presets:</span>
+            <button class="preset-btn" data-text="HELLO" title="Short string showing negative compression in Standard mode">HELLO (Negative Demo)</button>
+            <button class="preset-btn" data-text="ABRACADABRA" title="Skewed frequency text with high bit savings">ABRACADABRA</button>
+            <button class="preset-btn" data-text="BEEP BOOP" title="Classic test string">BEEP BOOP</button>
+            <button class="preset-btn" data-text="TO BE OR NOT TO BE THAT IS THE QUESTION" title="Longer sentence">Shakespeare</button>
+          </div>
         </div>
         <button id="analyze-btn" class="primary-btn">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -129,6 +135,12 @@
             <polygon points="5 4 15 12 5 20 5 4" />
             <line x1="19" y1="5" x2="19" y2="19" />
           </svg></button>
+        <button id="btn-skip" class="ctrl-btn" title="Skip to End / View Full Tree">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 4 15 12 5 20 5 4" fill="currentColor" />
+            <line x1="17" y1="5" x2="17" y2="19" stroke-width="2.5" />
+          </svg>
+        </button>
         <div class="speed-group">
           <label for="speed-slider">Speed</label>
           <input id="speed-slider" type="range" min="0.25" max="4" step="0.25" value="1" />
@@ -176,8 +188,66 @@
         <h2>Encoded Lookup Table &amp; Compression Analytics</h2>
       </div>
 
+      <!-- Overhead Accounting Model Controls -->
+      <div class="mode-control-banner">
+        <div class="mode-control-header">
+          <div class="mode-title-group">
+            <span class="mode-label-badge">Theoretical Model</span>
+            <span class="mode-title">Overhead Accounting Model</span>
+          </div>
+          <div class="mode-toggle-group" role="radiogroup" aria-label="Compression Overhead Mode">
+            <button id="mode-standard-btn" class="mode-pill-btn active" role="radio" aria-checked="true" data-mode="standard" title="Includes full tree header / frequency table overhead">
+              <span class="mode-pill-dot"></span>
+              <span class="mode-pill-name">Standard Mode</span>
+              <span class="mode-pill-sub">(Includes Tree Header Overhead)</span>
+            </button>
+            <button id="mode-canonical-btn" class="mode-pill-btn" role="radio" aria-checked="false" data-mode="canonical" title="Assumes pre-shared tree or canonical bit-length array with zero tree overhead">
+              <span class="mode-pill-dot"></span>
+              <span class="mode-pill-name">Canonical / Payload-Only Mode</span>
+              <span class="mode-pill-sub">(Zero Header Overhead)</span>
+            </button>
+          </div>
+        </div>
+        <p id="mode-desc-pill" class="mode-desc-text">
+          <strong>Standard Mode Active:</strong> Default educational mode. Includes payload bits plus header serialization overhead (8-bit ASCII character map + 8-bit frequency/code length metadata per unique symbol).
+        </p>
+      </div>
+
+      <!-- Dynamic Efficiency & Overhead Callout Banner -->
+      <div id="efficiency-callout-banner" class="efficiency-banner warning-banner" role="alert">
+        <div class="banner-icon-container">
+          <div id="banner-icon" class="banner-icon-circle">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
+        </div>
+        <div class="banner-content">
+          <div class="banner-top-row">
+            <h3 id="banner-title" class="banner-heading">Heads Up: Compression Inefficient / Not Feasible for this input</h3>
+            <span id="banner-badge" class="banner-status-tag tag-warning">Negative Compression</span>
+          </div>
+          <p id="banner-explanation" class="banner-desc">
+            Due to small input size or large unique character count, table overhead exceeds bit savings. In production systems, data would be stored uncompressed (Raw Store Mode). However, the Huffman Tree construction and decoding traversal below will still run for educational purposes.
+          </p>
+          <div class="banner-stats-strip" id="banner-stats-strip">
+            <span class="banner-chip" id="bchip-raw">Raw: <strong>40 bits</strong></span>
+            <span class="banner-chip" id="bchip-total">Compressed: <strong>74 bits</strong></span>
+            <span class="banner-chip" id="bchip-diff">Difference: <strong>-34 bits expansion</strong></span>
+            <span class="banner-chip" id="bchip-ratio">Ratio: <strong>-85.0%</strong></span>
+          </div>
+        </div>
+      </div>
+
       <div class="encode-grid">
+        <!-- Encoded Lookup Table -->
         <div class="table-wrap">
+          <div class="panel-header-mini">
+            <h3>Character Code Table</h3>
+            <span class="panel-subtitle">Variable-length prefix codes mapped from tree leaves</span>
+          </div>
           <table id="code-table">
             <thead>
               <tr>
@@ -193,34 +263,94 @@
           </table>
         </div>
 
+        <!-- Enhanced Granular Breakdown Panel -->
         <div class="analytics-panel">
-          <h3>Bit Calculation Panel</h3>
-          <div class="calc-row">
-            <span class="calc-label">Original size (N × 8)</span>
-            <span id="calc-orig" class="calc-value">—</span>
+          <div class="panel-header-mini">
+            <h3>Bit Calculation &amp; Overhead Breakdown</h3>
+            <span class="panel-subtitle" id="calc-panel-subtitle">Standard Mode (Payload + Header)</span>
           </div>
-          <div class="calc-row">
-            <span class="calc-label">Encoded message size (Σ freq<sub>i</sub> × len<sub>i</sub>)</span>
-            <span id="calc-encoded" class="calc-value">—</span>
+
+          <div class="breakdown-table-wrapper">
+            <table class="breakdown-table">
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th>Formula / Details</th>
+                  <th>Bits</th>
+                  <th>% of Raw</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="row-raw">
+                  <td>
+                    <span class="metric-bullet bullet-blue"></span>
+                    <strong>Raw Input Size</strong>
+                  </td>
+                  <td id="breakdown-raw-formula"><code>N × 8 bits</code></td>
+                  <td id="calc-orig" class="metric-bits">—</td>
+                  <td id="breakdown-raw-pct" class="metric-pct">100.0%</td>
+                </tr>
+                <tr class="row-payload">
+                  <td>
+                    <span class="metric-bullet bullet-green"></span>
+                    <strong>Encoded Payload Size</strong>
+                  </td>
+                  <td id="breakdown-payload-formula"><code>Σ (freq<sub>i</sub> × code_len<sub>i</sub>)</code></td>
+                  <td id="calc-encoded" class="metric-bits">—</td>
+                  <td id="breakdown-payload-pct" class="metric-pct">—</td>
+                </tr>
+                <tr class="row-overhead">
+                  <td>
+                    <span class="metric-bullet bullet-yellow"></span>
+                    <strong>Header / Table Overhead</strong>
+                  </td>
+                  <td id="breakdown-overhead-formula"><code>U × 16 bits (Char map + Tree metadata)</code></td>
+                  <td id="calc-overhead" class="metric-bits">—</td>
+                  <td id="breakdown-overhead-pct" class="metric-pct">—</td>
+                </tr>
+                <tr class="row-total">
+                  <td>
+                    <span class="metric-bullet bullet-purple"></span>
+                    <strong>Total Compressed Size</strong>
+                  </td>
+                  <td id="breakdown-total-formula"><code>Payload + Overhead</code></td>
+                  <td id="calc-total" class="metric-bits metric-bold">—</td>
+                  <td id="breakdown-total-pct" class="metric-pct metric-bold">—</td>
+                </tr>
+                <tr class="row-net" id="row-net-diff">
+                  <td>
+                    <span class="metric-bullet bullet-net" id="bullet-net"></span>
+                    <strong>Net Bit Difference</strong>
+                  </td>
+                  <td><code>Raw Size − Total Compressed Size</code></td>
+                  <td id="breakdown-net-diff" class="metric-bits metric-bold">—</td>
+                  <td id="calc-ratio" class="metric-pct metric-bold">—</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="calc-row">
-            <span class="calc-label">Tree/Table overhead</span>
-            <span id="calc-overhead" class="calc-value">—</span>
+
+          <!-- Enhanced Visual Ratio Comparison Gauge -->
+          <div class="ratio-section">
+            <div class="ratio-header-row">
+              <span class="ratio-label">Visual Size Comparison</span>
+              <span id="ratio-summary-badge" class="ratio-summary-badge">—</span>
+            </div>
+            <div id="ratio-bar" class="ratio-bar">
+              <div id="ratio-fill" class="ratio-fill"></div>
+            </div>
+            <div class="ratio-legend">
+              <span class="legend-item"><span class="legend-dot dot-payload"></span> Payload</span>
+              <span class="legend-item" id="legend-overhead-item"><span class="legend-dot dot-overhead"></span> Overhead</span>
+              <span class="legend-item" id="legend-status-item"><span class="legend-dot dot-savings"></span> Net Savings</span>
+            </div>
           </div>
-          <div class="calc-divider"></div>
-          <div class="calc-row total">
-            <span class="calc-label">Total compressed size</span>
-            <span id="calc-total" class="calc-value">—</span>
-          </div>
-          <div class="calc-row ratio">
-            <span class="calc-label">Compression ratio</span>
-            <span id="calc-ratio" class="calc-value">—</span>
-          </div>
-          <div id="ratio-bar" class="ratio-bar">
-            <div id="ratio-fill" class="ratio-fill"></div>
-          </div>
+
           <div class="encoded-bitstring-wrap">
-            <h4>Encoded Bitstring</h4>
+            <div class="bitstring-header">
+              <h4>Encoded Bitstring</h4>
+              <span id="bitstring-len-badge" class="bitstring-len-badge">0 bits</span>
+            </div>
             <div id="encoded-bitstring" class="bitstring-display"></div>
           </div>
         </div>
