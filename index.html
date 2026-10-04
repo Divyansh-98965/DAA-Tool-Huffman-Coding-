@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Huffman Coding Visualizer — Anti-Gravity Edition</title>
+  <meta name="description"
+    content="Interactive Huffman Coding algorithm visualizer with animated tree construction, compression analytics, decoding traversal, and Google Anti-Gravity physics." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto+Mono:wght@400;500&family=Inter:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Floating particle canvas background -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Top Navigation -->
+  <nav id="top-nav">
+    <div class="nav-left">
+      <div class="logo-group">
+        <span class="logo-h" style="color:#4285F4">Huffman coding visualizer</span>
+      </div>
+
+    </div>
+    <div class="nav-right">
+      <button id="dark-mode-toggle" class="icon-btn" title="Toggle Dark Mode" aria-label="Toggle dark mode">
+        <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <circle cx="12" cy="12" r="5" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+        </svg>
+        <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      </button>
+      <button id="gravity-toggle" class="icon-btn active" title="Toggle Anti-Gravity Physics"
+        aria-label="Toggle anti-gravity">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+        </svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <header id="hero">
+    <h1>Huffman Coding <span class="hero-accent">Visualizer</span></h1>
+    <p class="hero-sub">Explore lossless data compression through interactive animations, tree construction &amp;
+      decoding traversal</p>
+  </header>
+
+  <main id="app">
+    <!-- ═══════════ SECTION 1: INPUT ═══════════ -->
+    <section id="input-section" class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#4285F4">1</div>
+        <h2>Input &amp; Frequency Analysis</h2>
+      </div>
+      <div class="input-row">
+        <div class="input-group">
+          <label for="text-input">Enter text to encode</label>
+          <textarea id="text-input" rows="2" placeholder="Type something or choose a preset…"
+            spellcheck="false">BEEP BOOP</textarea>
+
+        </div>
+        <button id="analyze-btn" class="primary-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          Analyze &amp; Build Tree
+        </button>
+      </div>
+
+      <!-- Frequency Table -->
+      <div id="freq-panel" class="sub-panel hidden">
+        <h3>Character Frequencies</h3>
+        <div class="freq-stats">
+          <div class="stat-chip"><span class="stat-label">Unique Chars</span><span id="stat-unique"
+              class="stat-value">-</span></div>
+          <div class="stat-chip"><span class="stat-label">Total Chars</span><span id="stat-total"
+              class="stat-value">-</span></div>
+          <div class="stat-chip"><span class="stat-label">ASCII Bits/Char</span><span class="stat-value">8</span></div>
+          <div class="stat-chip"><span class="stat-label">Original Size</span><span id="stat-orig-bits"
+              class="stat-value">-</span></div>
+        </div>
+        <div id="freq-bars" class="freq-bars"></div>
+      </div>
+    </section>
+
+    <!-- ═══════════ SECTION 2: TREE ═══════════ -->
+    <section id="tree-section" class="card hidden">
+      <div class="card-header">
+        <div class="card-icon" style="background:#EA4335">2</div>
+        <h2>Huffman Tree Construction</h2>
+      </div>
+
+      <!-- Playback Controls -->
+      <div id="playback-controls" class="controls-bar">
+        <button id="btn-reset" class="ctrl-btn" title="Reset"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg></button>
+        <button id="btn-step-back" class="ctrl-btn" title="Step Back"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="19 20 9 12 19 4 19 20" />
+            <line x1="5" y1="19" x2="5" y2="5" />
+          </svg></button>
+        <button id="btn-play" class="ctrl-btn play-btn" title="Play / Pause">
+          <svg class="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          <svg class="pause-icon" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        </button>
+        <button id="btn-step-fwd" class="ctrl-btn" title="Step Forward"><svg width="18" height="18" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5 4 15 12 5 20 5 4" />
+            <line x1="19" y1="5" x2="19" y2="19" />
+          </svg></button>
+        <div class="speed-group">
+          <label for="speed-slider">Speed</label>
+          <input id="speed-slider" type="range" min="0.25" max="4" step="0.25" value="1" />
+          <span id="speed-label">1×</span>
+        </div>
+        <div class="step-info">
+          Step <span id="step-current">0</span> / <span id="step-total">0</span>
+        </div>
+      </div>
+
+      <!-- Step explanation banner above canvas -->
+      <div id="step-narration" class="narration-banner">
+        <div class="narration-badge">
+          <span class="pulse-indicator"></span>
+          <span id="narration-step-tag">Ready</span>
+        </div>
+        <p id="narration-text">Click <strong>Play</strong> or <strong>Step Forward</strong> to begin building the
+          Huffman Tree from the ground up.</p>
+      </div>
+
+      <!-- Min-Heap Queue visualization -->
+      <div id="heap-queue" class="heap-queue">
+        <div class="heap-queue-header">
+          <h3>Min-Heap Priority Queue</h3>
+          <span id="heap-queue-count" class="heap-count-badge">0 items</span>
+        </div>
+        <div id="heap-nodes" class="heap-nodes"></div>
+      </div>
+
+      <!-- Tree Canvas with zoom/pan -->
+      <div id="tree-viewport" class="tree-viewport">
+        <div class="zoom-controls">
+          <button id="zoom-in" class="icon-btn sm" title="Zoom In">+</button>
+          <button id="zoom-out" class="icon-btn sm" title="Zoom Out">−</button>
+          <button id="zoom-fit" class="icon-btn sm" title="Fit to View">⊡</button>
+        </div>
+        <canvas id="tree-canvas"></canvas>
+      </div>
+    </section>
+
+    <!-- ═══════════ SECTION 3: ENCODING TABLE ═══════════ -->
+    <section id="encode-section" class="card hidden">
+      <div class="card-header">
+        <div class="card-icon" style="background:#FBBC05">3</div>
+        <h2>Encoded Lookup Table &amp; Compression Analytics</h2>
+      </div>
+
+      <div class="encode-grid">
+        <div class="table-wrap">
+          <table id="code-table">
+            <thead>
+              <tr>
+                <th>Char</th>
+                <th>ASCII (8-bit)</th>
+                <th>Huffman Code</th>
+                <th>Code Len</th>
+                <th>Freq</th>
+                <th>Bits Saved</th>
+              </tr>
+            </thead>
+            <tbody id="code-table-body"></tbody>
+          </table>
+        </div>
+
+        <div class="analytics-panel">
+          <h3>Bit Calculation Panel</h3>
+          <div class="calc-row">
+            <span class="calc-label">Original size (N × 8)</span>
+            <span id="calc-orig" class="calc-value">—</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">Encoded message size (Σ freq<sub>i</sub> × len<sub>i</sub>)</span>
+            <span id="calc-encoded" class="calc-value">—</span>
+          </div>
+          <div class="calc-row">
+            <span class="calc-label">Tree/Table overhead</span>
+            <span id="calc-overhead" class="calc-value">—</span>
+          </div>
+          <div class="calc-divider"></div>
+          <div class="calc-row total">
+            <span class="calc-label">Total compressed size</span>
+            <span id="calc-total" class="calc-value">—</span>
+          </div>
+          <div class="calc-row ratio">
+            <span class="calc-label">Compression ratio</span>
+            <span id="calc-ratio" class="calc-value">—</span>
+          </div>
+          <div id="ratio-bar" class="ratio-bar">
+            <div id="ratio-fill" class="ratio-fill"></div>
+          </div>
+          <div class="encoded-bitstring-wrap">
+            <h4>Encoded Bitstring</h4>
+            <div id="encoded-bitstring" class="bitstring-display"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ SECTION 4: DECODING ═══════════ -->
+    <section id="decode-section" class="card hidden">
+      <div class="card-header">
+        <div class="card-icon" style="background:#34A853">4</div>
+        <h2>Decoding Traversal Animation</h2>
+      </div>
+
+      <div id="decode-controls" class="controls-bar">
+        <button id="decode-play" class="primary-btn sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
+          Start Decoding
+        </button>
+        <button id="decode-pause" class="ctrl-btn hidden" title="Pause Decoding">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="6" y="4" width="4" height="16" />
+            <rect x="14" y="4" width="4" height="16" />
+          </svg>
+        </button>
+        <button id="decode-reset" class="ctrl-btn" title="Reset Decoding">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
+        </button>
+        <div class="speed-group">
+          <label for="decode-speed">Speed</label>
+          <input id="decode-speed" type="range" min="0.5" max="4" step="0.5" value="1" />
+          <span id="decode-speed-label">1×</span>
+        </div>
+      </div>
+
+      <div class="decode-grid">
+        <div class="decode-bits-panel">
+          <h3>Binary Stream</h3>
+          <div id="decode-bitstream" class="bitstring-display"></div>
+        </div>
+        <div class="decode-tree-panel">
+          <canvas id="decode-tree-canvas"></canvas>
+        </div>
+        <div class="decode-output-panel">
+          <h3>Decoded Output</h3>
+          <div id="decode-output" class="decode-output"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ SECTION 5: DEVELOPER GUIDE ═══════════ -->
+    <!-- <section id="guide-section" class="card">
+      <div class="card-header">
+        <div class="card-icon" style="background:#4285F4">📖</div>
+        <h2>Developer Guide — "How to Build It"</h2>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-algo">Core Algorithm</button>
+        <button class="tab-btn" data-tab="tab-physics">Anti-Gravity Physics</button>
+        <button class="tab-btn" data-tab="tab-stack">Stack Architecture</button>
+      </div>
+
+      <div id="tab-algo" class="tab-content active">
+        <div class="guide-block">
+          <h3>1. Frequency Map</h3>
+          <p>Scan the input string and count occurrences of each character. Store as a
+            <code>Map&lt;char, frequency&gt;</code>.
+          </p>
+          <pre><code>function buildFrequencyMap(text) {
+  const freq = new Map();
+  for (const ch of text) {
+    freq.set(ch, (freq.get(ch) || 0) + 1);
+  }
+  return freq;
+}</code></pre>
+        </div>
+        <div class="guide-block">
+          <h3>2. Min-Heap Priority Queue</h3>
+          <p>Insert each character as a leaf node into a min-heap ordered by frequency. The heap ensures the two
+            smallest-frequency nodes are always extracted first.</p>
+          <pre><code>class MinHeap {
+  constructor() { this.heap = []; }
+  insert(node) { this.heap.push(node); this._bubbleUp(); }
+  extractMin() { /* swap root with last, pop, sift down */ }
+  _bubbleUp() { /* compare child with parent, swap if smaller */ }
+  _siftDown() { /* compare parent with children, swap with smallest */ }
+}</code></pre>
+        </div>
+        <div class="guide-block">
+          <h3>3. Tree Merging</h3>
+          <p>Repeatedly extract the two minimum nodes, create a new internal node with their combined frequency, assign
+            them as left and right children, and insert the new node back. Repeat until one node (root) remains.</p>
+          <pre><code>while (heap.size() > 1) {
+  const left  = heap.extractMin();
+  const right = heap.extractMin();
+  const merged = { freq: left.freq + right.freq, left, right };
+  heap.insert(merged);
+}</code></pre>
+        </div>
+        <div class="guide-block">
+          <h3>4. Variable-Length Code Assignment</h3>
+          <p>Traverse the tree from root to every leaf. Append <code>'0'</code> when going left and <code>'1'</code>
+            when going right. The accumulated string at each leaf is that character's Huffman code.</p>
+          <pre><code>function assignCodes(node, prefix = '', codes = {}) {
+  if (!node.left && !node.right) {
+    codes[node.char] = prefix || '0';
+    return codes;
+  }
+  assignCodes(node.left,  prefix + '0', codes);
+  assignCodes(node.right, prefix + '1', codes);
+  return codes;
+}</code></pre>
+        </div>
+        <div class="guide-block">
+          <h3>5. Decoding Traversal</h3>
+          <p>Read the encoded bitstring one bit at a time. Start at the root; go left on <code>'0'</code>, right on
+            <code>'1'</code>. When a leaf is reached, emit the character and restart from root.
+          </p>
+          <pre><code>function decode(bitstring, root) {
+  let result = '', node = root;
+  for (const bit of bitstring) {
+    node = bit === '0' ? node.left : node.right;
+    if (!node.left && !node.right) {
+      result += node.char;
+      node = root;
+    }
+  }
+  return result;
+}</code></pre>
+        </div>
+      </div>
+
+      <div id="tab-physics" class="tab-content">
+        <div class="guide-block">
+          <h3>Anti-Gravity Node Physics</h3>
+          <p>Each tree node is a physics body with position, velocity, and forces. The "anti-gravity" effect applies a
+            negative gravitational force (upward drift), combined with spring constraints to maintain tree structure.
+          </p>
+          <pre><code>// Physics update loop (60fps)
+function updatePhysics(nodes, dt) {
+  for (const n of nodes) {
+    // Anti-gravity: gentle upward force
+    n.vy -= ANTIGRAVITY * dt;
+    // Damping
+    n.vx *= DAMPING;  n.vy *= DAMPING;
+    // Spring force toward layout position
+    const dx = n.targetX - n.x;
+    const dy = n.targetY - n.y;
+    n.vx += dx * SPRING_K * dt;
+    n.vy += dy * SPRING_K * dt;
+    // Integrate
+    n.x += n.vx * dt;
+    n.y += n.vy * dt;
+  }
+}</code></pre>
+          <p>The background particle canvas uses a similar system. Each particle has random initial velocity and is
+            subject to weak gravity + collision with viewport bounds, creating the signature floating/drifting effect.
+          </p>
+        </div>
+        <div class="guide-block">
+          <h3>Interaction: Drag &amp; Release</h3>
+          <p>Nodes can be clicked and dragged. On release, their velocity is set based on the drag vector, allowing
+            users to "fling" nodes and watch them float back to position via the spring force. This adds tactile
+            interactivity.</p>
+        </div>
+      </div>
+
+      <div id="tab-stack" class="tab-content">
+        <div class="guide-block">
+          <h3>Recommended Stack</h3>
+          <table class="guide-table">
+            <thead>
+              <tr>
+                <th>Layer</th>
+                <th>Recommended</th>
+                <th>Alternatives</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Rendering</td>
+                <td>HTML5 Canvas 2D</td>
+                <td>SVG, WebGL, PixiJS</td>
+              </tr>
+              <tr>
+                <td>Physics</td>
+                <td>Custom Verlet / Euler</td>
+                <td>Matter.js, Cannon.js</td>
+              </tr>
+              <tr>
+                <td>Data Viz</td>
+                <td>Custom tree layout</td>
+                <td>D3.js (d3-hierarchy)</td>
+              </tr>
+              <tr>
+                <td>Framework</td>
+                <td>Vanilla JS (no build)</td>
+                <td>React, Vue, Svelte</td>
+              </tr>
+              <tr>
+                <td>Styling</td>
+                <td>Vanilla CSS + CSS Variables</td>
+                <td>Tailwind, Styled Components</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="guide-block">
+          <h3>Architecture Overview</h3>
+          <pre><code>index.html          ← Single page shell
+├── style.css       ← Design system (CSS variables, dark mode)
+├── app.js          ← Entry point
+│   ├── HuffmanEngine    ← Algorithm: freq map, heap, tree, codes
+│   ├── TreeRenderer     ← Canvas drawing + layout + physics
+│   ├── AnimationCtrl    ← Step sequencer, playback, speed
+│   ├── DecodeAnimator   ← Bit-by-bit tree traversal animation
+│   └── ParticleSystem   ← Background floating particles
+</code></pre>
+          <p>This visualizer is built entirely in vanilla JS with zero dependencies. The tree is rendered on an HTML5
+            Canvas with a custom tree layout algorithm (layered top-down with horizontal centering). Physics is a simple
+            Euler integration with spring forces and damping. All animations use <code>requestAnimationFrame</code> for
+            smooth 60fps rendering.</p>
+        </div>
+      </div>
+    </section> -->
+  </main>
+
+  <footer id="footer">
+    <p>Built by Divyansh</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
